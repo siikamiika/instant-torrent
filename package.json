@@ -1,0 +1,16 @@
+{
+  "name": "instant-torrent",
+  "version": "0.0.1",
+  "author": "siikamiika",
+  "main": "index.js",
+  "bin": {
+    "instant-torrent": "./app.js"
+  },
+  "dependencies": {
+    "mime": "^1.2.11",
+    "pump": "^0.3.1",
+    "range-parser": "^1.0.0",
+    "read-torrent": "^1.1.0",
+    "torrent-stream": "^0.19.0"
+  }
+}
