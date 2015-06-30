@@ -54,7 +54,7 @@ var playlistResponse = function (request, response, torrentStream) {
     }
 
     var playlist = '#EXTM3U\n' + torrentStream.files.map(toEntry).join('\n')
-
+    response.setHeader('Content-Disposition', 'attachment; filename="'+torrentStream.torrent.name+'.m3u')
     response.setHeader('Content-Type', 'application/x-mpegurl; charset=utf-8')
     response.setHeader('Content-Length', Buffer.byteLength(playlist))
     response.end(playlist)
