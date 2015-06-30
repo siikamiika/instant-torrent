@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>instant-torrent</title>
+</head>
+<body>
+<button onclick="deleteTorrents();">Delete torrents</button>
+<pre id="status"></pre>
+<script type="text/javascript">
+var xhr = function (type, path, data, onready) {
+    if (!onready) {onready = function(){}}
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = function () {
+        if (req.readyState == 4 && req.status == 200) {
+            onready(req.responseText);
+        }
+    }
+    req.open(type, path, true);
+    req.send(data);
+}
+
+var updateStatus = function () {
+    var status = document.getElementById('status');
+    xhr('GET', '/status', null, function (statusJSON) {
+        status.innerHTML = statusJSON;
+    });
+}
+
+var deleteTorrents = function () {
+    xhr('GET', '/delete_torrents', null, function () {
+        updateStatus();
+    })
+}
+
+window.onload = function () {
+    window.setInterval(function () {
+        updateStatus();
+    }, 1000);
+}
+</script>
+</body>
+</html>

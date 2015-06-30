@@ -5,10 +5,9 @@ var rangeParser = require('range-parser')
 var url = require('url')
 var mime = require('mime')
 var pump = require('pump')
+var fs = require('fs')
 
 var prepareEngine = function (engine, torrent, streams, request, response) {
-    engine.request = request
-    engine.response = response
     engine.id = torrent
     engine.idx = streams.length
     engine.on('ready', function () {
@@ -16,9 +15,8 @@ var prepareEngine = function (engine, torrent, streams, request, response) {
         engine.files.forEach(function (file) {
             console.log(file.name)
         })
-        playlistResponse(engine.request, engine.response, engine)
+        playlistResponse(request, response, engine)
     })
-    engine.listen()
     streams[engine.idx] = engine
 }
 
@@ -76,15 +74,44 @@ var createServer = function (opts) {
             var torrent = u.path.slice('/stream_torrent/'.length)
             return addTorrentStream(decodeURIComponent(torrent), this.torrentStreams, request, response)
         }
+        else if (u.pathname == '/delete_torrents') {
+            this.torrentStreams.forEach(function (stream) {
+                stream.remove(function () {
+                    stream.destroy(function(){})
+                })
+                console.log('\nRemoved: ' + stream.id)
+            })
+            this.torrentStreams = []
+            var info = JSON.stringify('done')
+            response.setHeader('Content-Type', 'application/json; charset=utf-8')
+            response.setHeader('Content-Length', Buffer.byteLength(info))
+            return response.end(info)
+        }
         else if (u.pathname == '/status') {
             var status = []
             this.torrentStreams.forEach(function (stream) {
-                status.push({id: stream.id, files: stream.files})
+                status.push({
+                    id: stream.id,
+                    files: stream.files.map(function (file) {
+                        return file.name
+                    })
+                })
             })
             status = JSON.stringify(status, null, '    ')
-            response.setHeader('Content-Type', 'text/plain; charset=utf-8')
+            response.setHeader('Content-Type', 'application/json; charset=utf-8')
             response.setHeader('Content-Length', Buffer.byteLength(status))
             return response.end(status)
+        }
+        else if (u.pathname == '/') {
+            fs.readFile('./html/index.html', function(err, html) {
+                if (err) {
+                    throw err
+                }
+                response.setHeader('Content-Type', 'text/html; charset=utf-8')
+                response.setHeader('Content-Length', Buffer.byteLength(html))
+                response.end(html)
+            })
+            return
         }
         // open file stream
         else {
