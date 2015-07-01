@@ -7,32 +7,37 @@ var mime = require('mime')
 var pump = require('pump')
 var fs = require('fs')
 
-var prepareEngine = function (engine, torrent, streams, request, response) {
-    engine.id = torrent
+var prepareEngine = function (engine, streams, request, response) {
     engine.idx = streams.length
     engine.on('ready', function () {
-        console.log('\n' + engine.id)
-        engine.files.forEach(function (file) {
-            console.log(file.name)
+        var existing = false
+        streams.forEach(function (stream) {
+            if (stream.infoHash == engine.infoHash) {
+                engine.remove(function () {
+                    engine.destroy(function(){})
+                })
+                existing = stream
+            }
         })
-        playlistResponse(request, response, engine)
+        if (existing) {
+            playlistResponse(request, response, existing)
+            return
+        }
+        else {
+            playlistResponse(request, response, engine)
+        }
+        console.log('\n' + engine.torrent.name)
+        console.log(engine.files.map(function (file) {
+            return file.name
+        }))
+        streams[engine.idx] = engine
     })
-    streams[engine.idx] = engine
 }
 
 var addTorrentStream = function (torrent, streams, request, response) {
-    var idExists = false
-    streams.forEach(function (stream) {
-        if (stream.id == torrent) {
-            idExists = true
-            return playlistResponse(request, response, stream)
-        }
-    })
-    if (idExists) return
-
     if (/^magnet:/.test(torrent)) {
         var engine = torrentStream(torrent)
-        prepareEngine(engine, torrent, streams, request, response)
+        prepareEngine(engine, streams, request, response)
     } else {
         readTorrent(torrent, function (err, torr, raw) {
             if (err) {
@@ -40,7 +45,7 @@ var addTorrentStream = function (torrent, streams, request, response) {
                 process.exit(1)
             }
             var engine = torrentStream(raw)
-            prepareEngine(engine, torrent, streams, request, response)
+            prepareEngine(engine, streams, request, response)
         })
     }
 }
@@ -79,7 +84,7 @@ var createServer = function (opts) {
                 stream.remove(function () {
                     stream.destroy(function(){})
                 })
-                console.log('\nRemoved: ' + stream.id)
+                console.log('\nRemoved: ' + stream.torrent.name)
             })
             this.torrentStreams = []
             var info = JSON.stringify('done')
@@ -91,7 +96,7 @@ var createServer = function (opts) {
             var status = []
             this.torrentStreams.forEach(function (stream) {
                 status.push({
-                    id: stream.id,
+                    name: stream.torrent.name,
                     files: stream.files.map(function (file) {
                         return file.name
                     })
