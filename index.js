@@ -8,29 +8,23 @@ var pump = require('pump')
 var fs = require('fs')
 
 var prepareEngine = function (engine, streams, request, response) {
-    engine.idx = streams.length
     engine.on('ready', function () {
-        var existing = false
-        streams.forEach(function (stream) {
-            if (stream.infoHash == engine.infoHash) {
+        for (var i = 0; i < streams.length; i++) {
+            if (streams[i].infoHash == engine.infoHash) {
                 engine.remove(function () {
                     engine.destroy(function(){})
+                    playlistResponse(request, response, streams[i])
                 })
-                existing = stream
+                return
             }
-        })
-        if (existing) {
-            playlistResponse(request, response, existing)
-            return
-        }
-        else {
-            playlistResponse(request, response, engine)
         }
         console.log('\n' + engine.torrent.name)
         console.log(engine.files.map(function (file) {
             return file.name
         }))
+        engine.idx = streams.length
         streams[engine.idx] = engine
+        playlistResponse(request, response, engine)
     })
 }
 
