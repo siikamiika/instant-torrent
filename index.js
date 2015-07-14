@@ -47,7 +47,7 @@ var addTorrentStream = function (torrent, streams, request, response) {
 var playlistResponse = function (request, response, torrentStream) {
 
     var toEntry = function (file, i) {
-        var entry = '#EXTINF:-1,' + file.path + '\n'
+        var entry = '#EXTINF:-1,' + file.name + '\n'
         entry += 'http://' + request.headers.host + '/' + torrentStream.idx + '/' + i
         return entry
     }
